@@ -24,6 +24,21 @@ prompt library built from your own questions.
 
 ### 1.
 
+What's contradictory or missing, not just in the company documents, but across everything in 00-rook?
+
 ### 2.
 
+Were there any issues prior to the 4.2 code?
+
 ### 3.
+
+How does this change your view on suggestions to fix the issues of most complaint since 4.2 release?
+
+### 4.
+
+please summarize into a more succinct list, maintaining the key points of relevance
+
+### 5.
+
+please rewrite to include more logic about "before 4.2" and "after 4.2"
+
