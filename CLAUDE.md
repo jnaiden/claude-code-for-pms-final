@@ -127,3 +127,21 @@ asserting causes. Treat the wiki roadmap and Priya's handoff as inputs, not trut
 - Open: database stops at 6 Sep so recovery is untested; Wen Li to confirm the loop; Marcus
   to say if the wait can ship alone; Helen conversation on 4.2 commitments still pending;
   Nadia to answer the open "quiet" and "gone before he could answer" tickets.
+
+- Two problems, not one (pings table, 12 Aug-6 Sep): a broad one, where the 12 other
+  responders' miss rate rose from ~2% to ~14% (what the 90s wait should fix), and a deep
+  one, where Vesper, The Undertow, Farlight and Meteor Mite miss ~59% and are 30% of all
+  110 misses. Their last "taken" was 14-19 Aug, and all 20 pings since went unanswered
+  (16 missed, 4 turned down). Halfmoon and Ashgrove are only mildly down.
+- Tickets (support_tickets, 147, 83 open, all open ones after 12 Aug): 30 "quiet" tickets
+  come from only 4 handlers; 15 "gone" tickets come from 11. Filters are 14 tickets, bigger
+  than the interviews suggest. Dot, Kip and Halloran filed none, so tickets undercount.
+- Interviews (4 handlers, 2-5 Sep): "gone" 3 of 4, alerts 3 of 4, uneven workload 2 of 4.
+  Only the interviews show handlers wanting to know a callout is live (supports the Q4
+  handler phone app). Halloran's Supply points (requisitions, failure reports, catalog
+  search) also appear in tickets from others and pre-date 4.2.
+- Why the wait went 90s to 60s is not recorded in the code, changelog, wiki or handoff;
+  ask Priya via Marcus before shipping 90s. Don't blanket-reset scores: recompute them
+  without 4.2-era misses, stop counting a miss as a full decline, add decay.
+- `00-rook/feedback/tickets/` doesn't exist; tickets live in the database. Keep household
+  detail from interviews (e.g. Dot's) out of shared docs, per the confidentiality rule.
