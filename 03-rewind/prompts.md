@@ -72,40 +72,52 @@ How to interpret should start with definitions of the key data fields within
 is there any other approach to be applied to look at responders differently?
 
 ### 20.
-let's rework the chart to show missed pings.  Maybe a map or heatmap?
+Yes, run those three
 
 ### 21.
-unfortunately I was hoping for a region heat map, with overlay of missed pings before and after 4.2, in-region vs. out-of-region
+let's rework the chart to show missed pings.  Maybe a map or heatmap?
 
 ### 22.
-can you please run a comparison of the tickets against the new data in the metrics report we've been pulling together?  Does this change the story?
+unfortunately I was hoping for a region heat map, with overlay of missed pings before and after 4.2, in-region vs. out-of-region
 
 ### 23.
-i.e. Compare the tickets in 00-rook/feedback/tickets/ against this data file. Do they agree with each other? When did people start writing in, and when do the numbers actually move?
+yes please.  then we'll be moving on to further analysis
 
 ### 24.
-What about previous PM thinking of a seasonal decline? Is that accurate?
+can you please run a comparison of the tickets against the new data in the metrics report we've been pulling together?  Does this change the story?
 
 ### 25.
-Pick one responder from the file who went quiet, and ask Claude to follow their whole month, week by week, in plain English.
+i.e. Compare the tickets in 00-rook/feedback/tickets/ against this data file. Do they agree with each other? When did people start writing in, and when do the numbers actually move?
 
 ### 26.
-Do the same for Vesper
+What about previous PM thinking of a seasonal decline? Is that accurate?
 
 ### 27.
-Why aren't we able to cut through the noise to find exactly the cause and effect?
+Pick one responder from the file who went quiet, and ask Claude to follow their whole month, week by week, in plain English.
 
 ### 28.
-So why is a rollback not the answer?
+Do the same for Vesper
 
 ### 29.
-We haven't checked the code yet, right?
+Yes, check whether that pattern holds for all four
 
 ### 30.
-We're going to need to operate for now assuming we haven't checked the code and focus back on farlight's story and the insights that can be gathered from this individual alone
+Yes, add that to the brief
 
 ### 31.
-where did the confidentiality rule originate?
+Why aren't we able to cut through the noise to find exactly the cause and effect?
 
 ### 32.
+So why is a rollback not the answer?
+
+### 33.
+We haven't checked the code yet, right?
+
+### 34.
+We're going to need to operate for now assuming we haven't checked the code and focus back on farlight's story and the insights that can be gathered from this individual alone
+
+### 35.
+where did the confidentiality rule originate?
+
+### 36.
 can you tell me about the undertow
