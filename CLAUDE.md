@@ -164,3 +164,16 @@ asserting causes. Treat the wiki roadmap and Priya's handoff as inputs, not trut
   callouts end after one missed ping, Meteor Mite's story, data after 6 Sep. Brief for
   Helen: `02-super-hearing/brief-for-helen-4.2-impact.md` (still needs tickets and
   seasonality sections); region tile map image sits beside it.
+- Routing code read in Module 4 (one snapshot, single commit 2 Oct, no history; the travel-time,
+  who's-free and phone-push functions are empty stubs, nothing run). Applies to everyone
+  at once: 4.2 weights are global, so the change hit responders already declining too. In 4.2
+  history counts for 25% (was 40%), so the scoring loop hurts less than before; proximity at 60%
+  may do more of the starving. Only `record_accepted` (+0.08) adds points and only
+  `record_declined` (-0.12, turn-downs and misses alike) removes them; no decay.
+- Unconfirmed code concerns to put to Marcus/Wen: scores held in memory only (a release or
+  restart could reset everyone to 0.5, maybe at 12 Aug); a late "yes" at 60s is discarded;
+  a failed push may end the callout (maybe why callouts stop after one miss, or the list
+  held one person); free list built once; unqualified responders still pinged.
+- Data check: callouts with no taker 5.5% before 4.2 (48 of 879), 11.1% after (49 of 440);
+  pings per callout 1.23 to 1.39. No data records what happens after "taken", so no
+  delivery-quality measure exists. Draft reply to Marcus written (not sent): applied to all.
