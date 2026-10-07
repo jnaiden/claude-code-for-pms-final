@@ -145,3 +145,22 @@ asserting causes. Treat the wiki roadmap and Priya's handoff as inputs, not trut
   without 4.2-era misses, stop counting a miss as a full decline, add decay.
 - `00-rook/feedback/tickets/` doesn't exist; tickets live in the database. Keep household
   detail from interviews (e.g. Dot's) out of shared docs, per the confidentiality rule.
+- Update: `00-rook/feedback/tickets/` now exists (147 files, same as the database). First
+  "gone" ticket 12 Aug 15:41, first "quiet" ticket 17 Aug; handler counts match the pings
+  day for day. Dot, Kip and Halloran filed none, but their responders hold 32 of 110 misses.
+- Where the 110 misses sit (12 Aug-6 Sep, pings joined to callouts and responders; "own
+  area" = responders.area vs callouts.area, a proxy for proximity): 12 responders in their
+  own area 6.0% missed (0.6% before), same 12 outside it 26.0% (8.8%), the four 58.9%.
+  94 of 110 misses are first pings. Missed-ping rate, 2.3% to 18.0%, is the headline number.
+- Cover since 4.2: Harborside, Old Town and Uptown (home responder is one of the four) got
+  86 out-of-area takes, none before; out-of-area pings elsewhere: 108, 52 missed, none taken.
+  Farlight was first ping on 75% of Uptown callouts before, 13% after; The Undertow still
+  first on 25% of Harborside but missed 6 of 8; Vesper kept own-area clean until 19 Aug.
+- Not seasonal: the break is on release day, daily. Late-Aug recovery is partly the four
+  leaving the denominator (other 12 at 11.1% missed vs about 2% before). Early-warning
+  idea to test with Ravi: own-area missed rate in week one, 38% for the four vs 5%.
+- Operate as if the routing code has not been checked: the scoring loop and the wait cut
+  stay hypotheses until Wen Li confirms. Open: why out-of-area responders now say yes, why
+  callouts end after one missed ping, Meteor Mite's story, data after 6 Sep. Brief for
+  Helen: `02-super-hearing/brief-for-helen-4.2-impact.md` (still needs tickets and
+  seasonality sections); region tile map image sits beside it.
