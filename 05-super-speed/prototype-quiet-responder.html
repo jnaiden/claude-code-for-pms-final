@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dispatch: quiet responder (prototype)</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, Helvetica, Arial, sans-serif; margin: 0; background: #eceff3; color: #1b2430; }
+  header { padding: 14px 24px; background: #1b2430; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header small { opacity: .7; }
+  .toggle button { border: 1px solid #fff5; background: transparent; color: #fff; padding: 6px 14px; cursor: pointer; font-size: 13px; }
+  .toggle button:first-child { border-radius: 6px 0 0 6px; }
+  .toggle button:last-child { border-radius: 0 6px 6px 0; }
+  .toggle button.on { background: #fff; color: #1b2430; }
+  main { display: flex; gap: 28px; padding: 24px; align-items: flex-start; flex-wrap: wrap; }
+  .panel-title { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: #5a6675; margin: 0 0 8px; }
+  .console { flex: 1 1 560px; background: #fff; border-radius: 10px; box-shadow: 0 1px 4px #0002; overflow: hidden; min-width: 520px; }
+  .console-bar { background: #f5f7fa; padding: 10px 16px; border-bottom: 1px solid #e0e5ec; font-size: 13px; display: flex; justify-content: space-between; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; }
+  .card { border: 1px solid #dde3ea; border-radius: 8px; padding: 12px; cursor: pointer; background: #fff; }
+  .card:hover { border-color: #3b6fd4; }
+  .card.sel { border-color: #3b6fd4; box-shadow: 0 0 0 2px #3b6fd433; }
+  .card h3 { margin: 0 0 4px; font-size: 15px; }
+  .muted { color: #5a6675; font-size: 12px; }
+  .stat { font-size: 13px; margin-top: 6px; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .pill.ok { background: #dff3e4; color: #1d6b33; }
+  .pill.quiet { background: #fff0cc; color: #8a5a00; }
+  .detail { margin: 0 16px 16px; border: 1px solid #dde3ea; border-radius: 8px; padding: 14px; background: #fafbfc; }
+  .detail h4 { margin: 0 0 8px; font-size: 14px; }
+  .bars { display: flex; align-items: flex-end; gap: 6px; height: 70px; margin: 8px 0 4px; }
+  .bars div { flex: 1; background: #3b6fd4; border-radius: 3px 3px 0 0; position: relative; }
+  .bars div.after { background: #d97a1f; }
+  .bars span { position: absolute; top: -15px; width: 100%; text-align: center; font-size: 10px; color: #333; }
+  .labels { display: flex; gap: 6px; font-size: 10px; color: #5a6675; }
+  .labels div { flex: 1; text-align: center; }
+  .why { background: #fff8e6; border: 1px solid #f0d89a; border-radius: 6px; padding: 10px 12px; margin-top: 10px; font-size: 13px; line-height: 1.45; }
+  .checks { margin: 10px 0 0; padding: 0; list-style: none; font-size: 13px; }
+  .checks li { padding: 3px 0; }
+  .btn { border: 0; background: #3b6fd4; color: #fff; padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-top: 10px; }
+  .btn.sec { background: #e7ebf1; color: #1b2430; margin-left: 6px; }
+  .today-note { margin: 10px 0 0; font-size: 13px; color: #5a6675; font-style: italic; }
+  .hidden { display: none; }
+  .phone-wrap { flex: 0 0 300px; }
+  .phone { width: 290px; height: 560px; border: 10px solid #1b2430; border-radius: 34px; background: #fff; overflow: hidden; position: relative; box-shadow: 0 2px 8px #0003; }
+  .phone .screen { padding: 22px 16px; height: 100%; font-size: 14px; display: flex; flex-direction: column; }
+  .phone h2 { margin: 0 0 10px; font-size: 18px; }
+  .banner { background: #e8f0ff; border-radius: 8px; padding: 10px; font-size: 13px; line-height: 1.4; margin-bottom: 12px; }
+  .ping { border: 2px solid #d97a1f; border-radius: 10px; padding: 12px; margin-top: 8px; }
+  .ping b { display: block; margin-bottom: 4px; }
+  .timer { height: 6px; background: #eee; border-radius: 3px; margin: 8px 0; overflow: hidden; }
+  .timer div { height: 100%; background: #d97a1f; width: 100%; }
+  .phone .row { display: flex; gap: 8px; margin-top: 8px; }
+  .phone .row .btn { flex: 1; margin: 0; }
+  .phone .btn.no { background: #e7ebf1; color: #1b2430; }
+  .spacer { flex: 1; }
+  .status-line { font-size: 12px; color: #5a6675; }
+  .foot { padding: 0 24px 24px; font-size: 12px; color: #5a6675; max-width: 900px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Dispatch: quiet responder <small>&nbsp;prototype · mock data based on Farlight's real pattern · not built</small></h1>
+  </div>
+  <div class="toggle">
+    <button id="t-today" class="on" onclick="setMode('today')">Today (4.2)</button>
+    <button id="t-prop" onclick="setMode('prop')">Proposal</button>
+  </div>
+</header>
+
+<main>
+  <section class="console">
+    <div class="console-bar"><span><b>Console</b> · Linda Pruitt</span><span class="muted">Handler view</span></div>
+    <div class="cards">
+      <div class="card sel" id="card-far" onclick="selectCard('far')">
+        <h3>Farlight <span class="pill quiet" id="far-pill">Available</span></h3>
+        <div class="muted">Uptown · cold-weather, structural-entry</div>
+        <div class="stat" id="far-stat">Pings this week: <b>1</b></div>
+      </div>
+      <div class="card" id="card-oth" onclick="selectCard('oth')">
+        <h3>Sgt. Falkirk <span class="pill ok">Available</span></h3>
+        <div class="muted">Uptown</div>
+        <div class="stat">Pings this week: <b>9</b></div>
+      </div>
+    </div>
+
+    <div class="detail" id="detail-far">
+      <h4>Farlight · last six weeks of pings, then since 12 Aug</h4>
+      <div class="bars">
+        <div style="height:100%"><span>12</span></div>
+        <div style="height:100%"><span>12</span></div>
+        <div style="height:92%"><span>11</span></div>
+        <div style="height:100%"><span>12</span></div>
+        <div style="height:100%"><span>13</span></div>
+        <div style="height:100%"><span>12</span></div>
+        <div class="after" style="height:83%"><span>10</span></div>
+        <div class="after" style="height:25%"><span>3</span></div>
+        <div class="after" style="height:8%"><span>1</span></div>
+        <div class="after" style="height:2%"><span>0</span></div>
+      </div>
+      <div class="labels"><div>29 Jun</div><div>6 Jul</div><div>13 Jul</div><div>20 Jul</div><div>27 Jul</div><div>3 Aug</div><div>10 Aug</div><div>17 Aug</div><div>24 Aug</div><div>31 Aug</div></div>
+
+      <div id="today-view">
+        <p class="today-note">Nothing here explains the drop. Linda's tickets (#3060, #3071, #3089, #3103 and more) are open.</p>
+      </div>
+
+      <div id="prop-view" class="hidden">
+        <div class="why">
+          <b>Farlight has gone quiet.</b> She was offered about 12 callouts a week before 12 Aug. She has been offered 1 in the last 7 days, and her last taken callout was 14 Aug.<br>
+          Her last 5 pings: 3 missed, 1 turned down, 1 taken.
+        </div>
+        <ul class="checks">
+          <li>✅ Availability set correctly</li>
+          <li>✅ Capability tags present</li>
+        </ul>
+        <p class="muted" style="margin:10px 0 0">What happens next: Dispatch will offer Farlight a callout in Uptown within 7 days <i>(proposed target)</i>. Her first ping back gets extra time to answer. Support will reply to your open tickets by <i>[date to be agreed]</i>.</p>
+        <button class="btn" onclick="sendNote()">Send Farlight a message</button>
+        <button class="btn sec" onclick="alert('Prototype: this would open Linda\'s open tickets with their status.')">See my open tickets (11)</button>
+        <div id="sent" class="muted hidden" style="margin-top:8px">Message sent to Farlight's phone. See the phone on the right.</div>
+      </div>
+    </div>
+
+    <div class="detail hidden" id="detail-oth">
+      <h4>Sgt. Falkirk</h4>
+      <p class="muted">Pings this week: 9. This is the busy side of the same Uptown area. The proposal shows nothing special here. Click Farlight to see the difference.</p>
+    </div>
+  </section>
+
+  <section class="phone-wrap">
+    <p class="panel-title">Farlight's phone</p>
+    <div class="phone"><div class="screen" id="phone-screen"></div></div>
+    <p class="muted" style="margin-top:8px">Use the buttons on the phone. In the proposal view, the callout is the first one after a quiet stretch.</p>
+  </section>
+</main>
+
+<p class="foot">Mock data. Weekly ping counts, ticket numbers and quotes come from Farlight's real pattern in the Rook database (29 Jun to 6 Sep 2026). The 7-day target, the extra time on the first ping and the reply date are proposals for discussion, not commitments. No cause for the drop is claimed here.</p>
+
+<script>
+let mode = 'today', note = false, answered = null, timerId = null;
+
+function setMode(m) {
+  mode = m; note = false; answered = null;
+  document.getElementById('t-today').classList.toggle('on', m === 'today');
+  document.getElementById('t-prop').classList.toggle('on', m === 'prop');
+  document.getElementById('today-view').classList.toggle('hidden', m !== 'today');
+  document.getElementById('prop-view').classList.toggle('hidden', m !== 'prop');
+  document.getElementById('sent').classList.add('hidden');
+  document.getElementById('far-pill').textContent = m === 'prop' ? 'Gone quiet' : 'Available';
+  document.getElementById('far-stat').innerHTML = m === 'prop'
+    ? 'Pings this week: <b>1</b> <span class="muted">(usually 12)</span>'
+    : 'Pings this week: <b>1</b>';
+  renderPhone();
+}
+
+function selectCard(which) {
+  document.getElementById('card-far').classList.toggle('sel', which === 'far');
+  document.getElementById('card-oth').classList.toggle('sel', which === 'oth');
+  document.getElementById('detail-far').classList.toggle('hidden', which !== 'far');
+  document.getElementById('detail-oth').classList.toggle('hidden', which !== 'oth');
+}
+
+function sendNote() {
+  note = true;
+  document.getElementById('sent').classList.remove('hidden');
+  renderPhone();
+}
+
+function renderPhone() {
+  clearInterval(timerId);
+  const el = document.getElementById('phone-screen');
+  let html = '<h2>Callouts</h2>';
+  if (mode === 'prop') {
+    html += '<div class="banner"><b>You are still in the system.</b><br>Your availability and tags are fine. You have heard less recently. Your handler Linda can see this and Dispatch is working on it.</div>';
+    if (note) html += '<div class="banner" style="background:#fff8e6"><b>From Linda:</b> Dispatch can see you have been quiet. Keep your phone on. We will tell you when this is fixed.</div>';
+  } else {
+    html += '<div class="status-line">No callouts.</div>';
+  }
+
+  if (answered) {
+    html += '<div class="ping"><b>' + (answered === 'taken' ? 'Taken. Thanks.' : answered === 'down' ? 'Turned down.' : 'Missed.') + '</b><span class="muted">' +
+      (answered === 'missed'
+        ? (mode === 'prop' ? 'Your ping wait ran out. Because this was your first callout in a while, it will not count against your ranking.' : 'Your ping wait ran out and it moved to the next responder.')
+        : '') + '</span></div>';
+    html += '<div class="row"><button class="btn" onclick="answered=null;renderPhone()">Reset</button></div>';
+  } else if (window.pingOpen) {
+    const secs = mode === 'prop' ? 90 : 60;
+    html += '<div class="ping"><b>New callout: Uptown</b><span>A man in a hot air balloon is holding a sit-in at the power station.</span>' +
+      '<div class="timer"><div id="bar"></div></div><div class="muted" id="secs">' + secs + 's left' +
+      (mode === 'prop' ? ' · extra time because you have been quiet' : '') + '</div>' +
+      '<div class="row"><button class="btn" onclick="answer(\'taken\')">Take it</button><button class="btn no" onclick="answer(\'down\')">Turn down</button></div></div>';
+  } else {
+    html += '<div class="spacer"></div><button class="btn" onclick="startPing()">Simulate a ping</button>';
+  }
+  el.innerHTML = html;
+  if (window.pingOpen && !answered) runTimer();
+}
+
+function startPing() { window.pingOpen = true; renderPhone(); }
+
+function answer(a) { window.pingOpen = false; answered = a; renderPhone(); }
+
+function runTimer() {
+  const total = mode === 'prop' ? 90 : 60;
+  let left = total;
+  timerId = setInterval(() => {
+    left -= 3; // sped up so the wait is easy to see in a demo
+    const bar = document.getElementById('bar'), s = document.getElementById('secs');
+    if (!bar) return clearInterval(timerId);
+    bar.style.width = Math.max(0, left / total * 100) + '%';
+    s.textContent = Math.max(0, left) + 's left' + (mode === 'prop' ? ' · extra time because you have been quiet' : '');
+    if (left <= 0) { clearInterval(timerId); window.pingOpen = false; answered = 'missed'; renderPhone(); }
+  }, 1000);
+}
+
+window.pingOpen = false;
+setMode('today');
+</script>
+</body>
+</html>

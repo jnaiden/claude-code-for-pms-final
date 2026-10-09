@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rook Dispatch · Quiet responder (prototype)</title>
+<style>
+  :root { --ink:#1b2430; --muted:#5a6675; --line:#dde3ea; --bg:#eef1f5; --blue:#3b6fd4; --amber:#d97a1f; --amberbg:#fff6e3; --green:#2f8f68; --red:#b3402f; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,Helvetica,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  button { font:inherit; cursor:pointer; }
+  .topnote { background:#1b2430; color:#fff; padding:8px 20px; font-size:12px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; }
+  .seg button { background:transparent; color:#fff; border:1px solid #fff6; padding:5px 12px; font-size:12px; }
+  .seg button:first-child { border-radius:6px 0 0 6px; } .seg button:last-child { border-radius:0 6px 6px 0; }
+  .seg button.on { background:#fff; color:var(--ink); }
+  .wrap { display:flex; gap:24px; padding:20px; align-items:flex-start; flex-wrap:wrap; }
+
+  /* console */
+  .console { flex:1 1 700px; min-width:640px; background:#fff; border-radius:10px; box-shadow:0 1px 5px #0002; overflow:hidden; }
+  .chrome { display:flex; justify-content:space-between; align-items:center; background:#f5f7fa; border-bottom:1px solid var(--line); padding:10px 16px; font-size:13px; }
+  .chrome b { font-size:14px; }
+  .body { display:flex; min-height:560px; }
+  .nav { width:150px; border-right:1px solid var(--line); background:#fafbfc; padding:12px 0; font-size:13px; }
+  .nav div { padding:8px 16px; color:var(--muted); cursor:default; }
+  .nav div.on { color:var(--ink); font-weight:600; background:#e8eefb; border-left:3px solid var(--blue); padding-left:13px; }
+  .main { flex:1; padding:16px 18px; min-width:0; }
+  h2 { margin:0 0 4px; font-size:17px; } .sub { color:var(--muted); font-size:12px; margin-bottom:12px; }
+  .alert { background:var(--amberbg); border:1px solid #f0d89a; border-radius:8px; padding:10px 12px; font-size:13px; margin-bottom:12px; display:flex; justify-content:space-between; gap:10px; align-items:center; }
+  .alert .lnk { background:none; border:0; color:var(--blue); text-decoration:underline; padding:0; font-size:13px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.05em; padding:6px 8px; border-bottom:1px solid var(--line); }
+  td { padding:10px 8px; border-bottom:1px solid #eef1f5; }
+  tr.row { cursor:pointer; } tr.row:hover { background:#f4f7fd; } tr.row.sel { background:#e8eefb; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; }
+  .p-ok { background:#dff3e4; color:#1d6b33; } .p-quiet { background:#ffe9c2; color:#8a5a00; } .p-miss { background:#fbe0db; color:var(--red); }
+  .p-down { background:#e7ebf1; color:var(--ink); } .p-take { background:#dff3e4; color:#1d6b33; } .p-open { background:#e7ebf1; color:var(--ink); } .p-req { background:#e1ecff; color:#1f4fae; }
+  .detail { margin-top:14px; border:1px solid var(--line); border-radius:8px; }
+  .dhead { padding:12px 14px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; }
+  .tabs { display:flex; gap:2px; padding:0 10px; border-bottom:1px solid var(--line); }
+  .tabs button { background:none; border:0; padding:9px 12px; font-size:13px; color:var(--muted); border-bottom:2px solid transparent; }
+  .tabs button.on { color:var(--ink); font-weight:600; border-color:var(--blue); }
+  .pane { padding:14px; font-size:13px; line-height:1.5; }
+  .why { background:var(--amberbg); border:1px solid #f0d89a; border-radius:8px; padding:11px 13px; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:12px 0; }
+  .kpi { border:1px solid var(--line); border-radius:8px; padding:10px; } .kpi b { display:block; font-size:20px; } .kpi span { color:var(--muted); font-size:11px; }
+  .bars { display:flex; align-items:flex-end; gap:5px; height:64px; margin:6px 0 2px; }
+  .bars div { flex:1; background:var(--blue); border-radius:2px 2px 0 0; } .bars div.a { background:var(--amber); }
+  .labels { display:flex; gap:5px; font-size:9px; color:var(--muted); } .labels div { flex:1; text-align:center; }
+  .btn { background:var(--blue); color:#fff; border:0; border-radius:6px; padding:8px 14px; font-size:13px; }
+  .btn.sec { background:#e7ebf1; color:var(--ink); } .btn:disabled { background:#c9d1dc; cursor:default; }
+  .muted { color:var(--muted); font-size:12px; }
+  textarea { width:100%; border:1px solid var(--line); border-radius:6px; padding:8px; font:inherit; font-size:13px; min-height:78px; }
+  .hidden { display:none; }
+  .legacy { color:var(--muted); font-style:italic; }
+
+  /* phone */
+  .phonewrap { flex:0 0 310px; }
+  .lbl { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 8px; }
+  .phone { width:290px; height:570px; border:10px solid #1b2430; border-radius:34px; background:#fff; box-shadow:0 2px 8px #0003; overflow:hidden; }
+  .screen { padding:22px 15px; height:100%; display:flex; flex-direction:column; font-size:14px; }
+  .screen h3 { margin:0 0 10px; font-size:18px; }
+  .banner { background:#e8f0ff; border-radius:8px; padding:10px; font-size:13px; line-height:1.4; margin-bottom:10px; }
+  .banner.note { background:#fff6e3; }
+  .ping { border:2px solid var(--amber); border-radius:10px; padding:12px; margin-top:6px; }
+  .timer { height:6px; background:#eee; border-radius:3px; overflow:hidden; margin:8px 0; } .timer div { height:100%; background:var(--amber); width:100%; transition:width .9s linear; }
+  .row2 { display:flex; gap:8px; margin-top:8px; } .row2 .btn { flex:1; }
+  .spacer { flex:1; }
+
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#1b2430; color:#fff; padding:10px 16px; border-radius:8px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:9; }
+  .toast.show { opacity:1; }
+  .foot { padding:0 20px 24px; font-size:12px; color:var(--muted); max-width:980px; line-height:1.5; }
+</style>
+</head>
+<body>
+
+<div class="topnote">
+  <span><b>Prototype.</b> Mock screens built from the Farlight brief. Nothing here is built or connected to real data. Click anything that looks clickable.</span>
+  <span class="seg"><button id="m-today" class="on" onclick="setMode('today')">Today (4.2)</button><button id="m-prop" onclick="setMode('prop')">Proposed</button></span>
+</div>
+
+<div class="wrap">
+  <section class="console">
+    <div class="chrome"><span><b>Rook Dispatch</b> · Console</span><span class="muted">Signed in as Linda Pruitt, handler</span></div>
+    <div class="body">
+      <nav class="nav">
+        <div onclick="toast('Not part of this prototype.')">Callouts</div>
+        <div class="on">My responders</div>
+        <div onclick="toast('Not part of this prototype.')">Map</div>
+        <div onclick="toast('Not part of this prototype.')">Reports</div>
+        <div onclick="toast('Not part of this prototype.')">Support</div>
+      </nav>
+
+      <div class="main">
+        <h2>My responders</h2>
+        <div class="sub">Linda Pruitt · 1 responder · latest data 6 Sep 2026</div>
+
+        <div class="alert hidden" id="alert">
+          <span><b>1 responder has gone quiet.</b> We can see why, and we're working on it.</span>
+          <button class="lnk" onclick="selectRow(true)">Show me</button>
+        </div>
+
+        <table>
+          <thead><tr><th>Responder</th><th>Area</th><th>Status</th><th>Pings, last 7 days</th><th>Usual week</th></tr></thead>
+          <tbody>
+            <tr class="row" id="row" onclick="selectRow(true)">
+              <td><b>Farlight</b></td><td>Uptown</td>
+              <td><span class="pill p-ok" id="status">Available</span></td>
+              <td id="p7">0</td><td>about 12</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="detail hidden" id="detail">
+          <div class="dhead">
+            <div><b>Farlight</b> <span class="muted">· Uptown · cold-weather, structural-entry</span></div>
+            <button class="btn sec" onclick="selectRow(false)">Close</button>
+          </div>
+          <div class="tabs">
+            <button class="on" id="tb-sum" onclick="tab('sum')">Summary</button>
+            <button id="tb-pings" onclick="tab('pings')">Recent pings</button>
+            <button id="tb-tix" onclick="tab('tix')">My tickets (6)</button>
+            <button id="tb-msg" onclick="tab('msg')">Message</button>
+          </div>
+
+          <!-- Summary -->
+          <div class="pane" id="pane-sum">
+            <div id="sum-today" class="legacy">Nothing on this screen explains why Farlight's pings dropped. Linda has 11 open tickets asking. (Switch to "Proposed" at the top to see what we'd add.)</div>
+            <div id="sum-prop" class="hidden">
+              <div class="why"><b>Farlight has gone quiet.</b> She was offered about 12 callouts a week before 12 Aug. She has not been offered one since 28 Aug, and her last taken callout was 14 Aug.<br>
+              <span class="muted">Her last 5 pings: 3 missed, 1 turned down, 1 taken. As of 6 Sep (latest data).</span></div>
+              <div class="grid3">
+                <div class="kpi"><b>0</b><span>pings, last 7 days</span></div>
+                <div class="kpi"><b>14 Aug</b><span>last taken</span></div>
+                <div class="kpi"><b>Fine</b><span>availability and tags set correctly</span></div>
+              </div>
+              <div class="muted">Pings per week, 29 Jun to 31 Aug</div>
+              <div class="bars"><div style="height:92%"></div><div style="height:92%"></div><div style="height:85%"></div><div style="height:92%"></div><div style="height:100%"></div><div style="height:92%"></div><div class="a" style="height:77%"></div><div class="a" style="height:23%"></div><div class="a" style="height:8%"></div><div class="a" style="height:2%"></div></div>
+              <div class="labels"><div>29 Jun</div><div>6 Jul</div><div>13 Jul</div><div>20 Jul</div><div>27 Jul</div><div>3 Aug</div><div>10 Aug</div><div>17 Aug</div><div>24 Aug</div><div>31 Aug</div></div>
+              <p><b>What happens next</b> <span class="muted">(proposed, not committed)</span></p>
+              <ul style="margin:4px 0 8px;padding-left:18px">
+                <li>Dispatch offers Farlight a callout in Uptown within 7 days.</li>
+                <li>Her first ping back gets extra time to answer, and does not count against her if missed.</li>
+                <li>Support replies to your open tickets by <i>[date to be agreed]</i>.</li>
+              </ul>
+              <button class="btn" onclick="tab('msg')">Message Farlight</button>
+              <button class="btn sec" onclick="tab('tix')">See my tickets</button>
+            </div>
+          </div>
+
+          <!-- Recent pings -->
+          <div class="pane hidden" id="pane-pings">
+            <table>
+              <thead><tr><th>When</th><th>Callout area</th><th>Outcome</th></tr></thead>
+              <tbody>
+                <tr><td>28 Aug, 19:28</td><td>Mill District</td><td><span class="pill p-miss">Missed</span></td></tr>
+                <tr><td>23 Aug, 13:51</td><td>Mill District</td><td><span class="pill p-miss">Missed</span></td></tr>
+                <tr><td>22 Aug, 11:13</td><td>Uptown</td><td><span class="pill p-down">Turned down</span></td></tr>
+                <tr><td>19 Aug, 13:28</td><td>Uptown</td><td><span class="pill p-miss">Missed</span></td></tr>
+                <tr><td>14 Aug, 21:22</td><td>Uptown</td><td><span class="pill p-take">Taken</span></td></tr>
+                <tr><td>14 Aug, 16:32</td><td>Uptown</td><td><span class="pill p-miss">Missed</span></td></tr>
+              </tbody>
+            </table>
+            <p class="muted">Real pings from Farlight's history. Today the console doesn't show this to handlers.</p>
+          </div>
+
+          <!-- Tickets -->
+          <div class="pane hidden" id="pane-tix">
+            <table id="tixtable">
+              <thead><tr><th>#</th><th>Filed</th><th>Subject</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td>3060</td><td>17 Aug</td><td>Farlight's phone has not gone off in 3 days</td><td><span class="pill p-open st">Open</span></td></tr>
+                <tr><td>3071</td><td>20 Aug</td><td>Hardly anything for Farlight this week</td><td><span class="pill p-open st">Open</span></td></tr>
+                <tr><td>3089</td><td>24 Aug</td><td>Still very quiet for Farlight</td><td><span class="pill p-open st">Open</span></td></tr>
+                <tr><td>3103</td><td>28 Aug</td><td>Is Farlight still on the list?</td><td><span class="pill p-open st">Open</span></td></tr>
+                <tr><td>3110</td><td>29 Aug</td><td>First one in 5 days and she missed it</td><td><span class="pill p-open st">Open</span></td></tr>
+                <tr><td>3120</td><td>1 Sep</td><td>Farlight asked me to pass this on</td><td><span class="pill p-open st">Open</span></td></tr>
+              </tbody>
+            </table>
+            <p><button class="btn" id="askbtn" onclick="askSupport()">Ask Support for an update</button> <span class="muted" id="askmsg"></span></p>
+          </div>
+
+          <!-- Message -->
+          <div class="pane hidden" id="pane-msg">
+            <div class="muted" style="margin-bottom:6px">To Farlight, shown on her phone</div>
+            <textarea id="msgtext">Dispatch can see you've been quiet since mid-August. Your availability and tags are fine. Keep your phone on. I'll tell you as soon as this is fixed.</textarea>
+            <p><button class="btn" id="sendbtn" onclick="sendMsg()">Send to Farlight's phone</button> <span class="muted" id="sentmsg"></span></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="phonewrap">
+    <p class="lbl">Farlight's phone</p>
+    <div class="phone"><div class="screen" id="screen"></div></div>
+    <p class="muted" style="margin-top:8px">Press "Simulate a ping" to see the wait. The countdown runs at 3x speed.</p>
+  </section>
+</div>
+
+<p class="foot">Mock data. Ping history, weekly counts and ticket numbers come from Farlight's real pattern in the Rook database (29 Jun to 6 Sep 2026). The 7-day target, the extra time on the first ping, the "does not count against her" rule and the reply date are proposals, not commitments. Whether Dispatch can do these things has not been confirmed with Wen Li. No cause for the drop is claimed here.</p>
+<div class="toast" id="toast"></div>
+
+<script>
+var mode = 'today', sent = null, answered = null, pingOpen = false, timer = null, asked = false;
+
+function $(id) { return document.getElementById(id); }
+function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(function(){ e.classList.remove('show'); }, 2200); }
+
+function setMode(m) {
+  mode = m; sent = null; answered = null; pingOpen = false; clearInterval(timer);
+  $('m-today').classList.toggle('on', m === 'today'); $('m-prop').classList.toggle('on', m === 'prop');
+  $('alert').classList.toggle('hidden', m !== 'prop');
+  var s = $('status'); s.textContent = m === 'prop' ? 'Gone quiet' : 'Available'; s.className = 'pill ' + (m === 'prop' ? 'p-quiet' : 'p-ok');
+  $('sum-today').classList.toggle('hidden', m !== 'today'); $('sum-prop').classList.toggle('hidden', m !== 'prop');
+  $('sentmsg').textContent = ''; $('sendbtn').disabled = false;
+  renderPhone();
+}
+
+function selectRow(open) {
+  $('detail').classList.toggle('hidden', !open);
+  $('row').classList.toggle('sel', open);
+  if (open) tab('sum');
+}
+
+function tab(t) {
+  ['sum','pings','tix','msg'].forEach(function(k){
+    $('pane-' + k).classList.toggle('hidden', k !== t);
+    $('tb-' + k).classList.toggle('on', k === t);
+  });
+}
+
+function askSupport() {
+  if (asked) return;
+  asked = true;
+  var cells = document.querySelectorAll('#tixtable .st');
+  for (var i = 0; i < cells.length; i++) { cells[i].textContent = 'Update requested'; cells[i].className = 'pill p-req st'; }
+  $('askbtn').disabled = true;
+  $('askmsg').textContent = 'Sent to Support (Nadia Hoffmann). You’ll get one reply covering all six.';
+  toast('Update requested for 6 tickets.');
+}
+
+function sendMsg() {
+  sent = $('msgtext').value.trim();
+  if (!sent) return;
+  $('sendbtn').disabled = true;
+  $('sentmsg').textContent = 'Sent. See Farlight’s phone on the right.';
+  toast('Message sent to Farlight’s phone.');
+  renderPhone();
+}
+
+function renderPhone() {
+  clearInterval(timer);
+  var h = '<h3>Callouts</h3>';
+  if (mode === 'prop') {
+    h += '<div class="banner"><b>You’re still in the system.</b><br>Your availability and tags are fine. You’ve heard less lately. Your handler Linda can see this, and Dispatch is working on it.</div>';
+    if (sent) h += '<div class="banner note"><b>From Linda:</b> ' + sent.replace(/</g,'&lt;') + '</div>';
+  } else {
+    h += '<div class="muted">No callouts.</div>';
+  }
+  if (answered) {
+    var title = answered === 'taken' ? 'Taken. Thanks.' : answered === 'down' ? 'Turned down.' : 'Missed.';
+    var extra = answered === 'missed'
+      ? (mode === 'prop' ? 'Time ran out. Because this was your first callout in a while, it won’t count against your ranking.' : 'Time ran out and the callout moved to the next responder.')
+      : '';
+    h += '<div class="ping"><b>' + title + '</b><div class="muted">' + extra + '</div></div><div class="row2"><button class="btn sec" onclick="answered=null;renderPhone()">Reset</button></div>';
+  } else if (pingOpen) {
+    var total = mode === 'prop' ? 90 : 60;
+    h += '<div class="ping"><b>New callout: Uptown</b><div>Sit-in at the power station.</div><div class="timer"><div id="bar"></div></div><div class="muted" id="secs">' + total + 's left' + (mode === 'prop' ? ' · extra time, you’ve been quiet' : '') + '</div>' +
+         '<div class="row2"><button class="btn" onclick="finish(\'taken\')">Take it</button><button class="btn sec" onclick="finish(\'down\')">Turn down</button></div></div>';
+  } else {
+    h += '<div class="spacer"></div><button class="btn" onclick="startPing()">Simulate a ping</button>';
+  }
+  $('screen').innerHTML = h;
+  if (pingOpen && !answered) runTimer();
+}
+
+function startPing() { pingOpen = true; renderPhone(); }
+function finish(a) { pingOpen = false; answered = a; renderPhone(); }
+
+function runTimer() {
+  var total = mode === 'prop' ? 90 : 60, left = total;
+  timer = setInterval(function() {
+    left -= 3;
+    var bar = $('bar'), s = $('secs');
+    if (!bar) { clearInterval(timer); return; }
+    bar.style.width = Math.max(0, left / total * 100) + '%';
+    s.textContent = Math.max(0, left) + 's left' + (mode === 'prop' ? ' · extra time, you’ve been quiet' : '');
+    if (left <= 0) { clearInterval(timer); pingOpen = false; answered = 'missed'; renderPhone(); }
+  }, 1000);
+}
+
+setMode('today');
+</script>
+</body>
+</html>

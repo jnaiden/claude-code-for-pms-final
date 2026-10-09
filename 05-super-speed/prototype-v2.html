@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rook Dispatch · Quiet responder, phased (prototype v2)</title>
+<style>
+  :root { --ink:#1b2430; --muted:#5a6675; --line:#dde3ea; --bg:#eef1f5; --blue:#3b6fd4; --amber:#d97a1f; --amberbg:#fff6e3; --green:#2f8f68; --red:#b3402f; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,Helvetica,Arial,sans-serif; color:var(--ink); background:var(--bg); }
+  button { font:inherit; cursor:pointer; }
+  .top { background:#1b2430; color:#fff; padding:10px 20px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; font-size:12px; }
+  .top .ctl { font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; opacity:.7; }
+  .top .grp { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .seg button { background:transparent; color:#fff; border:1px solid #fff6; padding:6px 12px; font-size:12px; }
+  .seg button:first-child { border-radius:6px 0 0 6px; } .seg button:last-child { border-radius:0 6px 6px 0; } .seg button + button { border-left:0; }
+  .seg button.on { background:#fff; color:var(--ink); font-weight:600; }
+  .chk { display:flex; align-items:center; gap:6px; cursor:pointer; }
+  .note { margin:16px 20px 0; background:#f1efff; border:1px solid #d6d1f5; border-left:5px solid #5b4fd4; border-radius:6px; padding:10px 16px 12px; font-size:13px; line-height:1.55; color:#2a2550; }
+  .note .tag { display:block; font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#5b4fd4; margin-bottom:4px; }
+  .stage { margin:16px 20px 0; border:2px solid #1b2430; border-radius:10px; background:#c9d1dd; overflow:hidden; }
+  .stagebar { background:#1b2430; color:#fff; font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; padding:6px 14px; display:flex; justify-content:space-between; }
+  .stagemode { background:#2c3a4f; color:#fff; padding:8px 14px; font-size:13px; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .stagemode .chip2 { background:#fff; color:#1b2430; font-weight:700; font-size:12px; border-radius:12px; padding:3px 11px; white-space:nowrap; }
+  .stagemode .desc { opacity:.9; }
+  .stagebar span:last-child { font-weight:400; letter-spacing:.02em; text-transform:none; opacity:.8; }
+  .wrap { display:flex; gap:24px; padding:20px; align-items:flex-start; flex-wrap:wrap; }
+
+  .console { flex:1 1 700px; min-width:640px; background:#fff; border-radius:10px; box-shadow:0 1px 5px #0002; overflow:hidden; }
+  .chrome { display:flex; justify-content:space-between; align-items:center; background:#f5f7fa; border-bottom:1px solid var(--line); padding:10px 16px; font-size:13px; }
+  .body { display:flex; min-height:540px; }
+  .nav { width:150px; border-right:1px solid var(--line); background:#fafbfc; padding:12px 0; font-size:13px; }
+  .nav div { padding:8px 16px; color:var(--muted); cursor:default; }
+  .nav div.on { color:var(--ink); font-weight:600; background:#e8eefb; border-left:3px solid var(--blue); padding-left:13px; }
+  .main { flex:1; padding:16px 18px; min-width:0; }
+  h2 { margin:0 0 4px; font-size:17px; } .sub { color:var(--muted); font-size:12px; margin-bottom:12px; }
+  .alert { background:var(--amberbg); border:1px solid #f0d89a; border-radius:8px; padding:10px 12px; font-size:13px; margin-bottom:12px; display:flex; justify-content:space-between; gap:10px; align-items:center; }
+  .lnk { background:none; border:0; color:var(--blue); text-decoration:underline; padding:0; font-size:13px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; font-weight:600; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.05em; padding:6px 8px; border-bottom:1px solid var(--line); }
+  td { padding:10px 8px; border-bottom:1px solid #eef1f5; vertical-align:top; }
+  tr.row { cursor:pointer; } tr.row:hover { background:#f4f7fd; } tr.row.sel { background:#e8eefb; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:600; }
+  .p-ok { background:#dff3e4; color:#1d6b33; } .p-quiet { background:#ffe9c2; color:#8a5a00; } .p-miss { background:#fbe0db; color:var(--red); }
+  .p-down { background:#e7ebf1; color:var(--ink); } .p-take { background:#dff3e4; color:#1d6b33; } .p-open { background:#e7ebf1; color:var(--ink); } .p-req { background:#e1ecff; color:#1f4fae; }
+  .reason { color:var(--muted); font-size:12px; margin-top:3px; }
+  .detail { margin-top:14px; border:1px solid var(--line); border-radius:8px; }
+  .dhead { padding:12px 14px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center; }
+  .pane { padding:14px; font-size:13px; line-height:1.5; }
+  .why { background:var(--amberbg); border:1px solid #f0d89a; border-radius:8px; padding:11px 13px; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:12px 0; }
+  .kpi { border:1px solid var(--line); border-radius:8px; padding:10px; } .kpi b { display:block; font-size:20px; } .kpi span { color:var(--muted); font-size:11px; }
+  .bars { display:flex; align-items:flex-end; gap:5px; height:60px; margin:6px 0 2px; }
+  .bars div { flex:1; background:var(--blue); border-radius:2px 2px 0 0; } .bars div.a { background:var(--amber); }
+  .labels { display:flex; gap:5px; font-size:9px; color:var(--muted); } .labels div { flex:1; text-align:center; }
+  .sect { margin-top:14px; padding-top:12px; border-top:1px solid var(--line); }
+  .sect h4 { margin:0 0 6px; font-size:13px; }
+  .btn { background:var(--blue); color:#fff; border:0; border-radius:6px; padding:8px 14px; font-size:13px; }
+  .btn.sec { background:#e7ebf1; color:var(--ink); } .btn:disabled { background:#c9d1dc; color:#fff; cursor:default; }
+  .muted { color:var(--muted); font-size:12px; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; margin:6px 0; }
+  .chip { background:#e7ebf1; border:0; border-radius:14px; padding:4px 10px; font-size:12px; }
+  .chip:hover { background:#d6ddea; }
+  textarea { width:100%; border:1px solid var(--line); border-radius:6px; padding:8px; font:inherit; font-size:13px; min-height:70px; }
+  .hidden { display:none; }
+  .track { height:8px; background:#e7ebf1; border-radius:4px; overflow:hidden; min-width:110px; }
+  .track .fill { height:100%; background:var(--green); transition:width .5s; }
+  .tl { font-size:11px; color:var(--muted); margin-top:3px; white-space:nowrap; }
+  .tl b { color:var(--ink); }
+  .legacy { color:var(--muted); font-style:italic; }
+
+  /* effort badges */
+  .eff { display:none; margin-left:6px; padding:1px 7px; border-radius:9px; font-size:10px; font-weight:700; vertical-align:middle; font-style:normal; letter-spacing:.02em; }
+  body.showeff .eff { display:inline-block; }
+  .e-s { background:#dff3e4; color:#1d6b33; } .e-m { background:#fff0cc; color:#8a5a00; } .e-l { background:#fbe0db; color:var(--red); }
+  body:not(.showeff) #effkey { display:none; }
+
+  /* phone */
+  .phonewrap { flex:0 0 310px; }
+  .lbl { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 8px; }
+  .phone { width:290px; height:570px; border:10px solid #1b2430; border-radius:34px; background:#fff; box-shadow:0 2px 8px #0003; overflow:hidden; }
+  .screen { padding:22px 15px; height:100%; display:flex; flex-direction:column; font-size:14px; }
+  .screen h3 { margin:0 0 10px; font-size:18px; }
+  .banner { background:#e8f0ff; border-radius:8px; padding:10px; font-size:13px; line-height:1.4; margin-bottom:10px; }
+  .banner.note { background:#fff6e3; }
+  .ping { border:2px solid var(--amber); border-radius:10px; padding:12px; margin-top:6px; }
+  .ping.late { border-color:var(--green); }
+  .timer { height:6px; background:#eee; border-radius:3px; overflow:hidden; margin:8px 0; } .timer div { height:100%; background:var(--amber); width:100%; transition:width .9s linear; }
+  .row2 { display:flex; gap:8px; margin-top:8px; } .row2 .btn { flex:1; }
+  .spacer { flex:1; }
+
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#1b2430; color:#fff; padding:10px 16px; border-radius:8px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:9; }
+  .toast.show { opacity:1; }
+  .foot { margin-bottom:24px; font-size:12px; }
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="grp">
+    <span class="ctl">Controls</span>
+    <span><b>Prototype v2.</b> Same Farlight story, built in phases. Mock screens, nothing connected.</span>
+    <span class="seg">
+      <button id="m-today" class="on" onclick="setMode('today')">Today (4.2)</button>
+      <button id="m-p1" onclick="setMode('p1')">Phase 1: see it</button>
+      <button id="m-p2" onclick="setMode('p2')">Phase 2: fix it</button>
+      <button id="m-p3" onclick="setMode('p3')">Phase 3: guide the job (parked)</button>
+    </span>
+  </div>
+  <label class="chk"><input type="checkbox" onchange="document.body.classList.toggle('showeff', this.checked)"> Show build effort</label>
+</div>
+
+<div class="note"><span class="tag">About this phase</span><span id="phase"></span></div>
+<div class="note" id="effkey"><span class="tag">How to read the effort badges</span><b>Build effort, PM guess for Marcus to size, not an estimate:</b>
+  <span class="eff e-s" style="display:inline-block">Small</span> uses data or config we already have &nbsp;
+  <span class="eff e-m" style="display:inline-block">Medium</span> new screen or message path &nbsp;
+  <span class="eff e-l" style="display:inline-block">Large</span> touches routing, needs Wen Li.
+</div>
+
+<div class="stage">
+<div class="stagebar"><span>Interface preview</span><span>Everything inside this frame is what the user would see. Everything outside is explanation.</span></div>
+<div class="stagemode"><span>Now showing</span><span class="chip2" id="stage-name"></span><span class="desc" id="stage-desc"></span></div>
+<div class="wrap">
+  <section class="console">
+    <div class="chrome"><span><b>Rook Dispatch</b> · Console</span><span class="muted">Signed in as Linda Pruitt, handler</span></div>
+    <div class="body">
+      <nav class="nav">
+        <div onclick="toast('Not part of this prototype.')">Callouts</div>
+        <div class="on">My responders</div>
+        <div onclick="toast('Not part of this prototype.')">Map</div>
+        <div onclick="toast('Not part of this prototype.')">Reports</div>
+        <div onclick="toast('Not part of this prototype.')">Support</div>
+      </nav>
+
+      <div class="main">
+        <h2>My responders</h2>
+        <div class="sub">Linda Pruitt · 1 responder · latest data 6 Sep 2026</div>
+
+        <div class="alert hidden" id="alert">
+          <span><b>1 responder has gone quiet.</b> <span class="muted">A responder is "quiet" when they get under half their usual pings for 7 days.</span><i class="eff e-s">Small</i></span>
+          <button class="lnk" onclick="selectRow(true)">Show me</button>
+        </div>
+
+        <table>
+          <thead><tr><th>Responder</th><th>Area</th><th>Status</th><th>Pings, last 7 days</th><th>Usual week</th><th class="p3only hidden">Trip status <i class="eff e-l">Large</i></th></tr></thead>
+          <tbody>
+            <tr class="row" id="row" onclick="selectRow(true)">
+              <td><b>Farlight</b><div class="reason hidden" id="reason">0 pings in 9 days. Last taken 14 Aug.</div></td>
+              <td>Uptown</td>
+              <td><span class="pill p-ok" id="status">Available</span> <span class="pill p-req hidden" id="newmsg">1 new message</span></td>
+              <td>0</td><td>about 12</td>
+              <td class="p3only hidden" id="trip-far"></td>
+            </tr>
+            <tr class="row p3only hidden" onclick="toast('Sample row, not a real responder.')">
+              <td><b>Sample responder A</b><div class="reason">Mock row for the prototype</div></td><td>-</td>
+              <td><span class="pill p-req">On a callout</span></td><td>-</td><td>-</td><td id="trip-a"></td>
+            </tr>
+            <tr class="row p3only hidden" onclick="toast('Sample row, not a real responder.')">
+              <td><b>Sample responder B</b><div class="reason">Mock row for the prototype</div></td><td>-</td>
+              <td><span class="pill p-req">On a callout</span></td><td>-</td><td>-</td><td id="trip-b"></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="detail hidden" id="detail">
+          <div class="dhead">
+            <div><b>Farlight</b> <span class="muted">· Uptown · cold-weather, structural-entry</span></div>
+            <button class="btn sec" onclick="selectRow(false)">Close</button>
+          </div>
+
+          <div class="pane">
+            <div id="sum-today" class="legacy">Nothing on this screen explains why Farlight's pings dropped. Linda has 11 open tickets asking. Switch to Phase 1 at the top to see what we'd add first.</div>
+
+            <div id="sum-new" class="hidden">
+              <div class="why"><b>Farlight has gone quiet.</b> She was offered about 12 callouts a week before 12 Aug. She has not been offered one since 28 Aug, and her last taken callout was 14 Aug.
+                <i class="eff e-s">Small</i><br>
+                <span class="muted">Her last 5 pings: 3 missed, 1 turned down, 1 taken. As of 6 Sep (latest data).</span></div>
+              <div class="grid3">
+                <div class="kpi"><b>0</b><span>pings, last 7 days</span></div>
+                <div class="kpi"><b>14 Aug</b><span>last taken</span></div>
+                <div class="kpi"><b>Fine</b><span>availability and tags set correctly</span></div>
+              </div>
+              <div class="muted">Pings per week, 29 Jun to 31 Aug</div>
+              <div class="bars"><div style="height:92%"></div><div style="height:92%"></div><div style="height:85%"></div><div style="height:92%"></div><div style="height:100%"></div><div style="height:92%"></div><div class="a" style="height:77%"></div><div class="a" style="height:23%"></div><div class="a" style="height:8%"></div><div class="a" style="height:2%"></div></div>
+              <div class="labels"><div>29 Jun</div><div>6 Jul</div><div>13 Jul</div><div>20 Jul</div><div>27 Jul</div><div>3 Aug</div><div>10 Aug</div><div>17 Aug</div><div>24 Aug</div><div>31 Aug</div></div>
+
+              <div class="sect">
+                <h4>Recent pings <i class="eff e-s">Small</i></h4>
+                <table>
+                  <tbody>
+                    <tr><td>28 Aug, 19:28</td><td>Mill District</td><td><span class="pill p-miss">Missed</span></td></tr>
+                    <tr><td>23 Aug, 13:51</td><td>Mill District</td><td><span class="pill p-miss">Missed</span></td></tr>
+                    <tr><td>22 Aug, 11:13</td><td>Uptown</td><td><span class="pill p-down">Turned down</span></td></tr>
+                    <tr><td>19 Aug, 13:28</td><td>Uptown</td><td><span class="pill p-miss">Missed</span></td></tr>
+                    <tr><td>14 Aug, 21:22</td><td>Uptown</td><td><span class="pill p-take">Taken</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="sect">
+                <h4>Your open tickets about Farlight (6 shown of 11) <i class="eff e-s">Small</i></h4>
+                <table id="tixtable">
+                  <tbody>
+                    <tr><td>#3060</td><td>17 Aug</td><td>Farlight's phone has not gone off in 3 days</td><td><span class="pill p-open st">Open</span></td></tr>
+                    <tr><td>#3071</td><td>20 Aug</td><td>Hardly anything for Farlight this week</td><td><span class="pill p-open st">Open</span></td></tr>
+                    <tr><td>#3089</td><td>24 Aug</td><td>Still very quiet for Farlight</td><td><span class="pill p-open st">Open</span></td></tr>
+                    <tr><td>#3103</td><td>28 Aug</td><td>Is Farlight still on the list?</td><td><span class="pill p-open st">Open</span></td></tr>
+                    <tr><td>#3110</td><td>29 Aug</td><td>First one in 5 days and she missed it</td><td><span class="pill p-open st">Open</span></td></tr>
+                    <tr><td>#3120</td><td>1 Sep</td><td>Farlight asked me to pass this on</td><td><span class="pill p-open st">Open</span></td></tr>
+                  </tbody>
+                </table>
+                <p><button class="btn" id="askbtn" onclick="askSupport()">Ask Support for one reply covering all of these</button> <span class="muted" id="askmsg"></span></p>
+              </div>
+
+              <div class="sect hidden" id="p2-job">
+                <h4>Active job <i class="eff e-l">Large</i></h4>
+                <div id="jobbox"></div>
+              </div>
+
+              <div class="sect hidden" id="p2-inbox">
+                <h4>From Farlight <i class="eff e-m">Medium</i></h4>
+                <div id="inbox" class="muted">No messages from Farlight yet. She can ask you a question from her phone with one tap.</div>
+              </div>
+
+              <div class="sect">
+                <h4 id="msg-title">Message Farlight</h4>
+                <div class="muted"><span id="msg-hint"></span> <i class="eff e-s" id="msg-eff">Small</i></div>
+                <div class="chips">
+                  <button class="chip" onclick="fill(0)">Still in the system</button>
+                  <button class="chip" onclick="fill(1)">We're looking into it</button>
+                  <button class="chip" onclick="fill(2)">Keep your phone on</button>
+                </div>
+                <textarea id="msgtext"></textarea>
+                <p><button class="btn" id="sendbtn" onclick="sendMsg()">Copy text</button> <span class="muted" id="sentmsg"></span></p>
+              </div>
+
+              <div class="sect hidden" id="p2-next">
+                <h4>What happens next <span class="muted">(proposed, not committed)</span></h4>
+                <ul style="margin:4px 0;padding-left:18px">
+                  <li>Dispatch offers Farlight a callout in Uptown within 7 days. <i class="eff e-l">Large</i></li>
+                  <li>Her first ping back is forgiving: a late yes still counts if nobody else has taken it, and a miss doesn't count against her. <i class="eff e-m">Medium to Large</i></li>
+                  <li>Support replies to your open tickets by <i>[date to be agreed]</i>.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="phonewrap">
+    <p class="lbl">Farlight's phone</p>
+    <div class="phone"><div class="screen" id="screen"></div></div>
+    <p class="muted" style="margin-top:8px">Press "Simulate a ping". The countdown runs at 3x speed. Let it run out to see the difference between phases.</p>
+  </section>
+</div>
+</div>
+
+<div class="note foot"><span class="tag">About the data</span>Mock data. Ping history, weekly counts and ticket numbers come from Farlight's real pattern in the Rook database (29 Jun to 6 Sep 2026). Phase 1 uses data and settings Dispatch already has, plus a message path. Phase 2 changes how ranking treats a quiet responder, and nothing in it has been confirmed with Wen Li. The 7-day target, the "quiet" threshold and the reply date are proposals. Build-effort badges are my guesses for Marcus to size. No cause for the drop is claimed here.</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var askedHandler = null, replied = false;
+var mode = 'today', sent = null, answered = null, pingOpen = false, late = false, timer = null, asked = false;
+var lines = [
+  "You're still in the system. Dispatch can see you've been quiet since mid-August, and your availability and tags are fine.",
+  "We're looking into why you've heard less. I'll tell you as soon as I know more.",
+  "Please keep your phone on and the app open so you don't miss a callout when one comes in."
+];
+var stageInfo = {
+  today: ['Today (4.2)', 'The console as it works now: 60-second wait, no explanation for a quiet responder.'],
+  p1: ['Phase 1: see it', '90-second wait plus the quiet-responder view and one reply to open tickets. Small effort, no routing or phone-app change.'],
+  p2: ['Phase 2: fix it', 'Phase 1 plus a way back for quiet responders, a forgiving first ping and in-app messaging with the handler. Needs Wen Li and Marcus.'],
+  p3: ['Phase 3: guide the job (parked)', 'Beyond the brief: job-in-progress guidance plus a trip-status bar and time to scene on the roster. Needs new data and a privacy decision. Not part of the 4.3 plan.']
+};
+var asks = [
+  { q: "Am I still in the system?", r: "Yes, you're still in the system, and your availability and tags are fine. You've heard less since mid-August and we're working on it." },
+  { q: "Is something wrong with my phone?", r: "Nothing looks wrong with your phone or your account. Keep the app open and I'll tell you as soon as I know more." },
+  { q: "What should I do?", r: "You don't need to change anything. Keep your phone on, and tell me if anything looks different on your side." },
+  { q: "I need backup on this job", r: "Got it. I'm looking for cover now and I'll message you as soon as someone is on the way.", hidden: true }
+];
+var etaTimer = null;
+var job = null, stages = ['Taken', 'On my way', 'On scene', 'Done'];
+var guide = [
+  'Check your gear, then head out. Tap "I\u2019m on my way" when you leave so Linda knows.',
+  'Tap "I\u2019ve arrived" when you\u2019re there. If the route is blocked or you need help, tell Linda.',
+  'When it\u2019s handled, mark it done so you\u2019re ready for the next callout.',
+  'All done. Linda has been told and you\u2019re back in rotation.'
+];
+var nextLabel = ['I\u2019m on my way', 'I\u2019ve arrived', 'Mark done'];
+var phases = {
+  today: "<b>Today (4.2).</b> The handler sees a normal-looking roster. The wait is 60 seconds. Nothing tells Linda, or Farlight, why she has gone quiet.",
+  p1: "<b>Phase 1: see it.</b> Restore the 90-second wait and show the handler why a responder went quiet, with her recent pings and a single reply to her open tickets. Every piece is <b>small</b>: it uses data Dispatch already has, with <b>no routing change and no phone-app change</b>, so it can ship without waiting on Wen Li. Linda tells Farlight herself. This is options A and B in the brief.",
+  p2: "<b>Phase 2: fix it.</b> Everything in Phase 1, plus a way back for quiet responders, a forgiving first ping, and a new in-app message path: the responder sees she is still in the system, the handler can message her, and she can ask the handler a question in one tap. <b>Needs Wen Li and Marcus</b> to confirm how ranking and late answers work. This is option C in the brief.",
+  p3: "<b>Phase 3: guide the job (parked).</b> Everything in Phase 2, plus what happens <i>after</i> a responder takes a callout: a job-in-progress screen with next steps and a status the handler can see. <b>This goes beyond the brief.</b> The roster gains a trip-status bar and time to scene for each responder. Nothing in Dispatch records what happens after a ping is taken, and a time to scene needs the responder's phone to share its location, which is a privacy decision under Security Policy 4.1 before it is a build decision. It needs new data and an owner. It is the largest piece of work shown here, and I would park it until Phase 2 has landed."
+};
+
+function $(id) { return document.getElementById(id); }
+function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(function(){ e.classList.remove('show'); }, 2200); }
+
+function setMode(m) {
+  mode = m; clearInterval(etaTimer); job = null; askedHandler = null; replied = false; sent = null; answered = null; pingOpen = false; late = false; clearInterval(timer);
+  ['today','p1','p2','p3'].forEach(function(k){ $('m-' + k).classList.toggle('on', k === m); });
+  $('phase').innerHTML = phases[m];
+  $('stage-name').textContent = stageInfo[m][0]; $('stage-desc').textContent = stageInfo[m][1];
+  var neu = m !== 'today';
+  $('alert').classList.toggle('hidden', !neu);
+  $('reason').classList.toggle('hidden', !neu);
+  var s = $('status'); s.textContent = neu ? 'Gone quiet' : 'Available'; s.className = 'pill ' + (neu ? 'p-quiet' : 'p-ok');
+  $('sum-today').classList.toggle('hidden', neu); $('sum-new').classList.toggle('hidden', !neu);
+  $('p2-next').classList.toggle('hidden', !(m === 'p2' || m === 'p3'));
+  $('p2-inbox').classList.toggle('hidden', !(m === 'p2' || m === 'p3')); $('newmsg').classList.add('hidden'); renderInbox();
+  updateConsole();
+  $('msgtext').value = lines[0]; $('sentmsg').textContent = ''; $('sendbtn').disabled = false;
+  renderPhone();
+}
+
+function trip(stage, label) {
+  return '<div class="track"><div class="fill" style="width:' + Math.round(stage / 3 * 100) + '%"></div></div><div class="tl">' + label + '</div>';
+}
+function etaLabel() {
+  if (!job) return '<span class="muted">No active job</span>';
+  if (job.stage === 0) return trip(0, '<b>Taken</b> \u00b7 time to scene ' + job.eta + ' min');
+  if (job.stage === 1) return trip(1, '<b>On my way</b> \u00b7 time to scene ' + job.eta + ' min');
+  if (job.stage === 2) return trip(2, '<b>On scene</b>');
+  return trip(3, '<b>Done</b>');
+}
+function updateConsole() {
+  var rows = document.querySelectorAll('.p3only');
+  for (var q = 0; q < rows.length; q++) rows[q].classList.toggle('hidden', mode !== 'p3');
+  if (mode === 'p3') {
+    $('trip-far').innerHTML = etaLabel();
+    $('trip-a').innerHTML = trip(1, '<b>On my way</b> \u00b7 time to scene 4 min');
+    $('trip-b').innerHTML = trip(2, '<b>On scene</b>');
+  }
+  var s = $('status'), r = $('reason'), neu = mode !== 'today';
+  var inApp = mode === 'p2' || mode === 'p3';
+  $('msg-title').textContent = inApp ? 'Message Farlight' : 'What to tell Farlight';
+  $('msg-hint').textContent = inApp ? 'Pick a starting line, edit it, send. It shows on her phone.' : 'Responders hear through their handler. Pick a line, edit it, copy it and tell her yourself.';
+  $('msg-eff').textContent = inApp ? 'Medium' : 'Small'; $('msg-eff').className = 'eff ' + (inApp ? 'e-m' : 'e-s');
+  $('sendbtn').textContent = inApp ? 'Send to Farlight\u2019s phone' : 'Copy text';
+  $('p2-job').classList.toggle('hidden', !(mode === 'p3' && job));
+  if (mode === 'p3' && job) {
+    if (job.stage < 3) { s.textContent = 'On a callout'; s.className = 'pill p-req'; r.textContent = 'Took a callout just now. Status: ' + stages[job.stage] + '.'; }
+    else { s.textContent = 'Available'; s.className = 'pill p-ok'; r.textContent = 'Took a callout just now, her first since 14 Aug.'; }
+    r.classList.remove('hidden');
+    var dots = stages.map(function(n, i){ return '<span class="pill ' + (i <= job.stage ? 'p-take' : 'p-down') + '" style="margin-right:4px">' + n + '</span>'; }).join('');
+    $('jobbox').innerHTML = '<div class="why" style="background:#f1f6ff;border-color:#c9d9f5"><b>Uptown:</b> sit-in at the power station<br><div style="margin-top:6px">' + dots + '</div><div class="muted" style="margin-top:6px">' + (job.stage < 2 ? 'Time to scene: <b>' + job.eta + ' min</b>. ' : '') + 'Updates as Farlight taps through on her phone. Nothing for you to do unless she asks for backup.</div></div>';
+  } else {
+    s.textContent = neu ? 'Gone quiet' : 'Available'; s.className = 'pill ' + (neu ? 'p-quiet' : 'p-ok');
+    r.textContent = '0 pings in 9 days. Last taken 14 Aug.'; r.classList.toggle('hidden', !neu);
+  }
+}
+function advance() {
+  job.stage++; clearInterval(etaTimer);
+  if (job.stage === 1) etaTimer = setInterval(function() { if (job && job.stage === 1 && job.eta > 0) { job.eta--; updateConsole(); } }, 1200);
+  updateConsole(); renderPhone();
+}
+function jobReset() { clearInterval(etaTimer); job = null; answered = null; updateConsole(); renderPhone(); }
+function backup() {
+  askedHandler = { i: 3 }; replied = false; $('newmsg').classList.remove('hidden');
+  toast('Backup request sent to Linda.'); renderPhone(); renderInbox();
+}
+function jobHtml() {
+  var steps = stages.map(function(n, i){ return '<div style="display:flex;gap:8px;align-items:center;margin:3px 0;opacity:' + (i <= job.stage ? 1 : .4) + '"><span class="pill ' + (i <= job.stage ? 'p-take' : 'p-down') + '">' + (i < job.stage ? '\u2713' : i + 1) + '</span>' + (i === job.stage ? '<b>' + n + '</b>' : n) + '</div>'; }).join('');
+  var btn = job.stage < 3 ? '<button class="btn" style="width:100%;margin-top:8px" onclick="advance()">' + nextLabel[job.stage] + '</button>' : '<button class="btn sec" style="width:100%;margin-top:8px" onclick="jobReset()">Reset</button>';
+  var help = job.stage < 3 ? '<button class="chip" style="display:block;width:100%;text-align:left;margin-top:8px;padding:7px 10px" onclick="backup()">Need backup? Tell Linda</button>' : '';
+  return '<div class="ping" style="border-color:#2f8f68"><b>Job in progress: Uptown</b><div class="muted">Sit-in at the power station.</div><div style="margin:8px 0">' + steps + '</div>' +
+    '<div class="banner" style="margin:6px 0 0"><b>Next:</b> ' + guide[job.stage] + '</div>' + btn + help + '</div>';
+}
+function renderInbox() {
+  var e = $('inbox'); if (!e) return;
+  if (!askedHandler) { e.className = 'muted'; e.innerHTML = 'No messages from Farlight yet. She can ask you a question from her phone with one tap.'; return; }
+  e.className = '';
+  e.innerHTML = '<div class="why" style="background:#f1f6ff;border-color:#c9d9f5"><b>Farlight asked:</b> \u201c' + asks[askedHandler.i].q + '\u201d <span class="muted">just now</span><br>' +
+    (replied ? '<span class="pill p-take">Replied</span>' : '<button class="btn" style="margin-top:6px" onclick="replyTo()">Reply with a suggested answer</button>') + '</div>';
+}
+function replyTo() { $('msgtext').value = asks[askedHandler.i].r; $('msgtext').focus(); toast('Suggested reply added. Edit it and send.'); }
+function askLinda(i) {
+  askedHandler = { i: i }; replied = false; $('newmsg').classList.remove('hidden');
+  toast('Sent to Linda. She\u2019ll see it in her console.'); renderPhone(); renderInbox();
+}
+function selectRow(open) { $('detail').classList.toggle('hidden', !open); $('row').classList.toggle('sel', open); }
+function fill(i) { $('msgtext').value = lines[i]; }
+
+function askSupport() {
+  if (asked) return; asked = true;
+  var c = document.querySelectorAll('#tixtable .st');
+  for (var i = 0; i < c.length; i++) { c[i].textContent = 'Update requested'; c[i].className = 'pill p-req st'; }
+  $('askbtn').disabled = true;
+  $('askmsg').textContent = 'Sent to Support (Nadia Hoffmann).';
+  toast('Update requested for these tickets.');
+}
+
+function sendMsg() {
+  if (mode !== 'p2' && mode !== 'p3') { toast('Copied. Paste it into your own message to Farlight.'); $('sentmsg').textContent = 'Copied.'; return; }
+  sent = $('msgtext').value.trim(); if (!sent) return;
+  $('sendbtn').disabled = true; $('sentmsg').textContent = 'Sent. See Farlight’s phone.';
+  if (askedHandler) replied = true;
+  toast('Message sent to Farlight’s phone.'); renderPhone(); renderInbox();
+}
+
+function renderPhone() {
+  clearInterval(timer);
+  var h = '<h3>Callouts</h3>';
+  if (mode === 'p2' || mode === 'p3') {
+    h += '<div class="banner"><b>You’re still in the system.</b><br>You’ve heard less lately. Your handler Linda can see this and Dispatch is working on it.</div>';
+    if (sent) h += '<div class="banner note"><b>From Linda:</b> ' + sent.replace(/</g, '&lt;') + '</div>';
+  } else { h += '<div class="muted">No callouts.</div>'; }
+
+  if (job) { h += jobHtml(); $('screen').innerHTML = h; return; }
+  var contact = '';
+  if ((mode === 'p2' || mode === 'p3') && !pingOpen) {
+    if (!askedHandler) {
+      contact = '<div class="banner" style="background:#f3f6fa"><b>Ask Linda</b><div class="muted" style="margin:2px 0 6px">One tap sends your question to your handler.</div>' +
+        asks.map(function(a, i){ if (a.hidden) return ''; return '<button class="chip" style="display:block;width:100%;text-align:left;margin:4px 0;padding:7px 10px" onclick="askLinda(' + i + ')">' + a.q + '</button>'; }).join('') + '</div>';
+    } else {
+      contact = '<div class="banner" style="background:#f3f6fa"><b>You asked Linda:</b> \u201c' + asks[askedHandler.i].q + '\u201d<div class="muted">' + (replied ? 'Linda has replied above.' : 'Sent. She\u2019ll reply here.') + '</div></div>';
+    }
+  }
+  h += contact;
+  if (answered) {
+    var t = answered === 'taken' ? 'Taken. Thanks.' : answered === 'down' ? 'Turned down.' : 'Missed.';
+    var x = '';
+    if (answered === 'missed') x = (mode === 'p2' || mode === 'p3') ? 'Time ran out. Because this was your first callout in a while, it won’t count against your ranking.' : 'Time ran out and the callout moved to the next responder.';
+    if (answered === 'taken' && late) x = 'You answered after the wait ran out. Nobody else had taken it, so it’s yours.';
+    h += '<div class="ping"><b>' + t + '</b><div class="muted">' + x + '</div></div><div class="row2"><button class="btn sec" onclick="answered=null;late=false;renderPhone()">Reset</button></div>';
+  } else if (pingOpen && late) {
+    h += '<div class="ping late"><b>Time’s up, but it’s still open</b><div class="muted">Nobody else has taken this yet. Want it?</div><div class="row2"><button class="btn" onclick="finish(\'taken\')">Take it</button><button class="btn sec" onclick="finish(\'down\')">Pass</button></div></div>';
+  } else if (pingOpen) {
+    var total = mode === 'today' ? 60 : 90;
+    h += '<div class="ping"><b>New callout: Uptown</b><div>Sit-in at the power station.</div><div class="timer"><div id="bar"></div></div><div class="muted" id="secs">' + total + 's left</div>' +
+         '<div class="row2"><button class="btn" onclick="finish(\'taken\')">Take it</button><button class="btn sec" onclick="finish(\'down\')">Turn down</button></div></div>';
+  } else { h += '<div class="spacer"></div><button class="btn" onclick="startPing()">Simulate a ping</button>'; }
+  $('screen').innerHTML = h;
+  if (pingOpen && !late && !answered) runTimer();
+}
+
+function startPing() { pingOpen = true; late = false; renderPhone(); }
+function finish(a) {
+  pingOpen = false;
+  if (a === 'taken' && mode === 'p3') { job = { stage: 0, eta: 9 }; answered = null; late = false; updateConsole(); renderPhone(); return; }
+  answered = a; renderPhone();
+}
+
+function runTimer() {
+  var total = mode === 'today' ? 60 : 90, left = total;
+  timer = setInterval(function() {
+    left -= 3;
+    var bar = $('bar'), s = $('secs');
+    if (!bar) { clearInterval(timer); return; }
+    bar.style.width = Math.max(0, left / total * 100) + '%';
+    s.textContent = Math.max(0, left) + 's left';
+    if (left <= 0) {
+      clearInterval(timer);
+      if (mode === 'p2' || mode === 'p3') { late = true; renderPhone(); }   // phase 2: a late yes is still accepted
+      else { pingOpen = false; answered = 'missed'; renderPhone(); }
+    }
+  }, 1000);
+}
+
+setMode('today');
+</script>
+</body>
+</html>
